@@ -149,7 +149,7 @@ class CostumeList(BaseModel):
     age_category: AgeCategoryEnum
     tags: List[str]
     thumbnail: Optional[str]  # Full URL to thumbnail
-    images: List[ImageData]   # Base data for all images
+    images: List[str]   # Base data for all images
     is_active: bool
 
     class Config:
