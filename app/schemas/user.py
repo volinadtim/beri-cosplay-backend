@@ -1,8 +1,7 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
-from typing import Optional, Any
+from typing import Optional
 from datetime import datetime
 from app.models.user import UserRole
-from app.schemas.token import Token
 
 
 # Base schemas
@@ -18,7 +17,8 @@ class UserCreate(UserBase):
     role: Optional[UserRole] = UserRole.USER
 
     @field_validator('password')
-    def validate_password(cls, v):
+    @classmethod
+    def validate_password(cls, v: str) -> str:
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
         if not any(c.isupper() for c in v):
@@ -31,7 +31,7 @@ class UserCreate(UserBase):
 
 
 class UserCreateAdmin(UserCreate):
-    role: UserRole = UserRole.USER  # Admins can only create regular users by default
+    role: UserRole = UserRole.USER
 
 
 # Update schemas
@@ -43,7 +43,8 @@ class UserUpdate(BaseModel):
     is_active: Optional[bool] = None
 
     @field_validator('password')
-    def validate_password(cls, v):
+    @classmethod
+    def validate_password(cls, v: Optional[str]) -> Optional[str]:
         if v is None:
             return v
         if len(v) < 8:
@@ -69,7 +70,7 @@ class UserInDB(UserBase):
     is_active: bool
     is_verified: bool
     created_at: datetime
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -92,19 +93,14 @@ class LoginRequest(BaseModel):
     password: str
 
     @model_validator(mode='after')
-    def validate_identifier(cls, data: Any) -> Any:
-        """Validate that either email or username is provided."""
-        if isinstance(data, dict):
-            email = data.get('email')
-            username = data.get('username')
-        else:
-            email = data.email
-            username = data.username
-
-        if email is None and username is None:
+    def validate_identifier(self):
+        if self.email is None and self.username is None:
             raise ValueError('Either email or username must be provided')
-        return data
+        return self
 
 
-class LoginResponse(Token):
+class LoginResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
     user: UserResponse
