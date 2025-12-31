@@ -1,13 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Form, File, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 import json
 from app.db.database import get_db
-from app.schemas.costume import CostumeResponse, CostumeCreate, CostumeUpdate
+from app.schemas.costume import CostumeCreate, CostumeUpdate, CostumeResponse
 from app.crud.costume import CostumeCRUD
 from app.dependencies.auth import get_current_admin
 from app.models.user import User
-from fastapi.responses import JSONResponse
 
 router = APIRouter(prefix="/admin/costumes", tags=["admin-costumes"])
 
@@ -54,41 +53,67 @@ async def create_costume(
     gender: str = Form("unisex"),
     age_category: str = Form("universal"),
     size: Optional[str] = Form(None),
-    tags: str = Form("[]"),  # JSON string
+    tags: str = Form("[]"),  # Accept as string, will parse as JSON
     items: Optional[str] = Form(None),
-    related_costumes: str = Form("[]"),  # JSON string
+    related_costumes: str = Form("[]"),  # Accept as string, will parse as JSON
     images: Optional[List[UploadFile]] = File(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
-    """Create a new costume (admin only)."""
-    # Parse JSON fields
+    """Create a new costume."""
     try:
-        tags_list = json.loads(tags)
-        related_list = json.loads(related_costumes)
-    except json.JSONDecodeError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid JSON in tags or related_costumes",
+        # Parse tags - handle both JSON array and comma-separated string
+        tags_list = []
+        if tags and tags.strip():
+            try:
+                # Try to parse as JSON first
+                tags_list = json.loads(tags)
+                if not isinstance(tags_list, list):
+                    tags_list = [tags_list]
+            except json.JSONDecodeError:
+                # If not JSON, treat as comma-separated string
+                tags_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+
+        # Parse related costumes
+        related_list = []
+        if related_costumes and related_costumes.strip():
+            try:
+                related_list = json.loads(related_costumes)
+                if not isinstance(related_list, list):
+                    related_list = [int(related_list)] if related_list else []
+            except (json.JSONDecodeError, ValueError):
+                # If not JSON, treat as comma-separated IDs
+                related_list = []
+                for item in related_costumes.split(","):
+                    if item.strip():
+                        try:
+                            related_list.append(int(item.strip()))
+                        except ValueError:
+                            pass
+
+        # Handle price - convert empty string to None
+        price_value = float(price) if price and str(price).strip() else None
+
+        # Create costume data
+        costume_data = CostumeCreate(
+            name=name,
+            description=description if description and description.strip() else None,
+            amount=amount,
+            price=price_value,
+            gender=gender,
+            age_category=age_category,
+            size=size if size and size.strip() else None,
+            tags=tags_list,
+            items=items if items and items.strip() else None,
+            related_costumes=related_list,
         )
 
-    # Create costume data
-    costume_data = CostumeCreate(
-        name=name,
-        description=description,
-        amount=amount,
-        price=price,
-        gender=gender,
-        age_category=age_category,
-        size=size,
-        tags=tags_list,
-        items=items,
-        related_costumes=related_list,
-    )
+        # Create costume
+        costume = await CostumeCRUD.create(db, costume_data, images)
+        return costume
 
-    # Create costume
-    costume = await CostumeCRUD.create(db, costume_data, images)
-    return costume
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Failed to create costume: {str(e)}")
 
 
 @router.put("/{costume_id}", response_model=CostumeResponse)
@@ -105,68 +130,71 @@ async def update_costume(
     items: Optional[str] = Form(None),
     related_costumes: Optional[str] = Form(None),
     is_active: Optional[bool] = Form(None),
-    add_images: Optional[List[UploadFile]] = File(None),
-    remove_images: Optional[str] = Form(None),  # JSON array of image hashes
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_admin),
 ):
-    """Update a costume (admin only)."""
-    # Parse update data
-    update_data = {}
-    if name is not None:
-        update_data["name"] = name
-    if description is not None:
-        update_data["description"] = description
-    if amount is not None:
-        update_data["amount"] = amount
-    if price is not None:
-        update_data["price"] = price
-    if gender is not None:
-        update_data["gender"] = gender
-    if age_category is not None:
-        update_data["age_category"] = age_category
-    if size is not None:
-        update_data["size"] = size
-    if items is not None:
-        update_data["items"] = items
-    if is_active is not None:
-        update_data["is_active"] = is_active
+    """Update a costume."""
+    try:
+        update_data = {}
 
-    # Parse JSON fields
-    if tags is not None:
-        try:
-            update_data["tags"] = json.loads(tags)
-        except json.JSONDecodeError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid JSON in tags",
-            )
+        # Handle optional fields
+        if name is not None:
+            update_data["name"] = name
+        if description is not None:
+            update_data["description"] = description if description.strip() else None
+        if amount is not None:
+            update_data["amount"] = amount
+        if price is not None:
+            update_data["price"] = float(price) if str(price).strip() else None
+        if gender is not None:
+            update_data["gender"] = gender
+        if age_category is not None:
+            update_data["age_category"] = age_category
+        if size is not None:
+            update_data["size"] = size if size.strip() else None
+        if items is not None:
+            update_data["items"] = items if items.strip() else None
+        if is_active is not None:
+            update_data["is_active"] = is_active
 
-    if related_costumes is not None:
-        try:
-            update_data["related_costumes"] = json.loads(related_costumes)
-        except json.JSONDecodeError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid JSON in related_costumes",
-            )
+        # Parse tags if provided
+        if tags is not None:
+            tags_list = []
+            if tags.strip():
+                try:
+                    tags_list = json.loads(tags)
+                    if not isinstance(tags_list, list):
+                        tags_list = [tags_list]
+                except json.JSONDecodeError:
+                    tags_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+            update_data["tags"] = tags_list
 
-    # Parse images to remove
-    remove_image_hashes = None
-    if remove_images is not None:
-        try:
-            remove_image_hashes = json.loads(remove_images)
-        except json.JSONDecodeError:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid JSON in remove_images",
-            )
+        # Parse related costumes if provided
+        if related_costumes is not None:
+            related_list = []
+            if related_costumes.strip():
+                try:
+                    related_list = json.loads(related_costumes)
+                    if not isinstance(related_list, list):
+                        related_list = [int(related_list)] if related_list else []
+                except (json.JSONDecodeError, ValueError):
+                    related_list = []
+                    for item in related_costumes.split(","):
+                        if item.strip():
+                            try:
+                                related_list.append(int(item.strip()))
+                            except ValueError:
+                                pass
+            update_data["related_costumes"] = related_list
 
-    # Update costume
-    costume_update = CostumeUpdate(**update_data)
-    costume = await CostumeCRUD.update(db, costume_id, costume_update, add_images, remove_image_hashes)
+        # Update costume
+        costume_update = CostumeUpdate(**update_data)
+        costume = await CostumeCRUD.update(db, costume_id, costume_update)
 
-    return costume
+        return costume
+
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Failed to update costume: {str(e)}")
 
 
 @router.delete("/{costume_id}", status_code=status.HTTP_204_NO_CONTENT)
