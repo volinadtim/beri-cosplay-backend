@@ -7,10 +7,20 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str
     
-    # Security
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # JWT
+    SECRET_KEY: str = "your-secret-key-change-in-production"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    
+    # Security
+    BCRYPT_ROUNDS: int = 12
+    
+    # Admin
+    ADMIN_EMAIL: str = "admin@bericosplay.com"
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "Admin123!"  # Change in production
+    ADMIN_FULL_NAME: str = "Admin User"
     
     # App
     PROJECT_NAME: str = "Beri Cosplay API"
