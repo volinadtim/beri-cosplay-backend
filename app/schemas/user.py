@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator, model_validato
 from typing import Optional, Any
 from datetime import datetime
 from app.models.user import UserRole
+from app.schemas.token import Token
 
 
 # Base schemas
@@ -103,3 +104,7 @@ class LoginRequest(BaseModel):
         if email is None and username is None:
             raise ValueError('Either email or username must be provided')
         return data
+
+
+class LoginResponse(Token):
+    user: UserResponse
