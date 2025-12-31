@@ -7,20 +7,22 @@ from app.core.config import settings
 from app.core.security import get_password_hash
 from app.api.api_v1.api import api_router
 import logging
+from fastapi.staticfiles import StaticFiles
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
 
 async def create_admin_user():
     """Create admin user on startup if not exists."""
     from sqlalchemy.ext.asyncio import AsyncSession
     from sqlalchemy import select
-    
+
     async with AsyncSession(engine) as session:
         # Check if admin exists
         result = await session.execute(select(User).where(User.email == settings.ADMIN_EMAIL))
         admin = result.scalar_one_or_none()
-        
+
         if not admin:
             # Create admin user
             admin_user = User(
@@ -38,29 +40,31 @@ async def create_admin_user():
         else:
             logger.info(f"Admin user already exists: {settings.ADMIN_EMAIL}")
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting up...")
-    
+
     try:
         # Create database tables
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
         logger.info("Database tables created successfully")
-        
+
         # Create admin user
         await create_admin_user()
-        
+
     except Exception as e:
         logger.error(f"Startup error: {e}")
         raise
-    
+
     yield
-    
+
     # Shutdown
     logger.info("Shutting down...")
     await engine.dispose()
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -70,6 +74,10 @@ app = FastAPI(
     redoc_url="/redoc",
     lifespan=lifespan,
 )
+
+# Add to your FastAPI app initialization
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
 
 # Set up CORS
 if settings.BACKEND_CORS_ORIGINS:
@@ -84,6 +92,7 @@ if settings.BACKEND_CORS_ORIGINS:
 # Include API router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
+
 @app.get("/")
 async def root():
     return {
@@ -91,6 +100,7 @@ async def root():
         "version": settings.VERSION,
         "docs": "/docs",
     }
+
 
 @app.get("/health")
 async def health_check():
