@@ -21,8 +21,8 @@ class User(Base):
     role = Column(Enum(UserRole), default=UserRole.USER, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     is_verified = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime(UTC), nullable=False)
-    updated_at = Column(DateTime, default=datetime(UTC), onupdate=datetime(UTC))
+    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC))
 
     def __repr__(self):
         return f"<User {self.email} ({self.role.value})>"
