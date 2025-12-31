@@ -1,6 +1,5 @@
-from sqlalchemy import Column, DateTime, Integer, String, Float, Boolean, Text, Enum, JSON, ForeignKey
-from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import ARRAY
+from sqlalchemy import Column, Integer, String, Float, Boolean, Text, Enum, DateTime
+from sqlalchemy.dialects.postgresql import ARRAY, JSON
 from datetime import datetime, UTC
 import enum
 from app.db.database import Base
@@ -25,26 +24,25 @@ class Costume(Base):
     
     # Inventory
     amount = Column(Integer, nullable=False, default=1)
-    price = Column(Float, nullable=True)  # Price per day in RUB
+    price = Column(Float, nullable=True)
     
     # Characteristics
     gender = Column(Enum(Gender), nullable=False, default=Gender.UNISEX)
     age_category = Column(Enum(AgeCategory), nullable=False, default=AgeCategory.UNIVERSAL)
-    size = Column(String(50), nullable=True)  # S, M, L, XL or specific measurements
-    tags = Column(ARRAY(String(100)), nullable=False, default=[])  # ["Принцесса", "Русалочка", "Сказка"]
+    size = Column(String(50), nullable=True)
+    tags = Column(ARRAY(String(100)), nullable=False, default=[])
     
-    # Related items (comma-separated or JSON)
-    items = Column(Text, nullable=True)  # Additional items: "корона, жезл, туфли"
-    
-    # Images - stored as JSON with hash and variants
+    # Images - store as JSON
     images = Column(JSON, nullable=False, default=[])
+    thumbnails = Column(ARRAY(String), nullable=False, default=[])
     
-    # Relations
-    related_costumes = Column(ARRAY(Integer), nullable=False, default=[])  # IDs of related costumes
+    # Related items
+    items = Column(Text, nullable=True)
+    related_costumes = Column(ARRAY(Integer), nullable=False, default=[])
     
-    # Timestamps
-    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
-    updated_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC), nullable=False)
+    # Timestamps - use timezone-naive datetime
+    created_at = Column(DateTime(timezone=False), default=datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime(timezone=False), default=datetime.now(UTC), onupdate=datetime.now(UTC), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     
     def __repr__(self):
