@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
     
     # Debug
-    DEBUG: bool = False
+    DEBUG: bool = True
     
     model_config = SettingsConfigDict(
         env_file=".env",
