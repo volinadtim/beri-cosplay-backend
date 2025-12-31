@@ -56,11 +56,11 @@ async def get_costumes(
             
             # For all images: return base data for frontend processing
             for img_url in costume.images:
-                # Extract filename from URL
-                filename = img_url.split("/")[-1] if "/" in img_url else img_url
+                # # Extract filename from URL
+                # filename = img_url.split("/")[-1] if "/" in img_url else img_url
                 
                 # Remove extension to get base name
-                base_name = filename.rsplit('.', 1)[0]
+                base_name = img_url.rsplit('.', 1)[0]
                 
                 # Return base image data for frontend to construct variants
                 images_data.append({
