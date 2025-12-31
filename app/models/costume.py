@@ -34,7 +34,7 @@ class Costume(Base):
     
     # Images - store as JSON
     images = Column(JSON, nullable=False, default=[])
-    thumbnails = Column(ARRAY(String), nullable=False, default=[])
+    # thumbnails = Column(ARRAY(String), nullable=False, default=[])
     
     # Related items
     items = Column(Text, nullable=True)
