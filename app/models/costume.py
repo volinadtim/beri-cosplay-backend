@@ -1,7 +1,7 @@
 from sqlalchemy import Column, DateTime, Integer, String, Float, Boolean, Text, Enum, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import ARRAY
-from datetime import datetime
+from datetime import datetime, UTC
 import enum
 from app.db.database import Base
 
@@ -43,8 +43,8 @@ class Costume(Base):
     related_costumes = Column(ARRAY(Integer), nullable=False, default=[])  # IDs of related costumes
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.now(datetime.UTC), nullable=False)
-    updated_at = Column(DateTime, default=datetime.now(datetime.UTC), onupdate=datetime.now(datetime.UTC), nullable=False)
+    created_at = Column(DateTime, default=datetime.now(UTC), nullable=False)
+    updated_at = Column(DateTime, default=datetime.now(UTC), onupdate=datetime.now(UTC), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     
     def __repr__(self):
