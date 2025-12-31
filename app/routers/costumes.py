@@ -43,37 +43,28 @@ async def get_costumes(
     
     result = []
     for costume in costumes:
-        # Get first image as thumbnail with full URL
-        thumbnail = None
-        images_data = []
-        
+        # Extract image URLs from JSON
+        image_urls = []
         if costume.images:
-            # Use first image for thumbnail
-            first_image = costume.images[0]
-            
-            # For thumbnail: return full URL
-            thumbnail = first_image  # This should be the full URL
-            
-            # For all images: return base data for frontend processing
-            for img_url in costume.images:
-                # # Extract filename from URL
-                # filename = img_url.split("/")[-1] if "/" in img_url else img_url
+            for img_data in costume.images:
+                # If it's a dict (JSON object), extract the URL
+                if isinstance(img_data, dict):
+                    # Check for different possible field names
+                    if "original" in img_data:
+                        image_urls.append(img_data["original"])
+                    elif "original_path" in img_data:
+                        # Construct full URL from path
+                        image_urls.append(f"/uploads/{img_data['original_path']}")
+                    elif "url" in img_data:
+                        image_urls.append(img_data["url"])
+                # If it's already a string (URL), use it directly
+                elif isinstance(img_data, str):
+                    # If it's a relative path, make it absolute
+                    if img_data.startswith("uploads/") or ("/" in img_data and not img_data.startswith("http")):
+                        image_urls.append(f"/{img_data}" if not img_data.startswith("/") else img_data)
+                    else:
+                        image_urls.append(img_data)
                 
-                # Remove extension to get base name
-                base_name = img_url.rsplit('.', 1)[0]
-                
-                # Return base image data for frontend to construct variants
-                images_data.append({
-                    "base_name": base_name,
-                    "original": img_url,  # Full original URL
-                    "formats": ["jpg", "webp", "avif"],  # Available formats
-                    "dimensions": [
-                        {"suffix": "_thumb", "width": 200, "height": 200},
-                        {"suffix": "_medium", "width": 800, "height": 800},
-                        {"suffix": "_large", "width": 1920, "height": 1920}
-                    ]
-                })
-        
         result.append({
             "id": costume.id,
             "name": costume.name,
@@ -81,8 +72,8 @@ async def get_costumes(
             "gender": costume.gender.value,
             "age_category": costume.age_category.value,
             "tags": costume.tags,
-            "thumbnail": thumbnail,  # Full URL to thumbnail
-            "images": images_data,   # Base data for all images
+            "thumbnail": image_urls[0],  # Full URL to thumbnail
+            "images": image_urls,   # Base data for all images
             "is_active": costume.is_active
         })
     
