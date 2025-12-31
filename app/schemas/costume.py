@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -52,7 +52,7 @@ class CostumeBase(BaseModel):
     items: Optional[str] = Field(None, max_length=500)
     related_costumes: List[int] = Field(default_factory=list)
     
-    @validator('tags')
+    @field_validator('tags')
     def validate_tags(cls, v):
         if len(v) > 20:
             raise ValueError('Maximum 20 tags allowed')
@@ -60,7 +60,7 @@ class CostumeBase(BaseModel):
             raise ValueError('Tag cannot exceed 100 characters')
         return v
     
-    @validator('related_costumes')
+    @field_validator('related_costumes')
     def validate_related_costumes(cls, v):
         if len(v) > 10:
             raise ValueError('Maximum 10 related costumes allowed')
@@ -82,7 +82,7 @@ class CostumeUpdate(BaseModel):
     related_costumes: Optional[List[int]] = None
     is_active: Optional[bool] = None
     
-    @validator('tags')
+    @field_validator('tags')
     def validate_tags(cls, v):
         if v is not None:
             if len(v) > 20:
@@ -91,7 +91,7 @@ class CostumeUpdate(BaseModel):
                 raise ValueError('Tag cannot exceed 100 characters')
         return v
     
-    @validator('related_costumes')
+    @field_validator('related_costumes')
     def validate_related_costumes(cls, v):
         if v is not None and len(v) > 10:
             raise ValueError('Maximum 10 related costumes allowed')

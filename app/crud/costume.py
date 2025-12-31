@@ -113,7 +113,7 @@ class CostumeCRUD:
         
         # Create costume
         db_costume = Costume(
-            **costume_data.dict(),
+            **costume_data.model_dump(),
             images=processed_images
         )
         
