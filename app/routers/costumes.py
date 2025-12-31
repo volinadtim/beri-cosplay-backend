@@ -6,7 +6,6 @@ from app.schemas.costume import CostumePublic, CostumeList, CostumeFilter
 from app.crud.costume import CostumeCRUD
 
 router = APIRouter(prefix="/costumes", tags=["costumes"])
-
 @router.get("/", response_model=List[CostumeList])
 async def get_costumes(
     skip: int = Query(0, ge=0),
@@ -42,22 +41,38 @@ async def get_costumes(
     
     costumes = await CostumeCRUD.get_multi(db, skip=skip, limit=limit, filters=filters)
     
-    # Format response with thumbnail URLs
     result = []
     for costume in costumes:
-        thumbnail_url = None
+        # Get first image as thumbnail with full URL
+        thumbnail = None
+        images_data = []
+        
         if costume.images:
-            # Get first image thumbnail
-            first_img = costume.images[0]
-            urls = CostumeCRUD.format_for_public(costume)["images"][0]
-            if "variants" in urls and "thumb" in urls["variants"]:
-                # Prefer webp, then avif, then jpg
-                thumb_variants = urls["variants"]["thumb"]
-                thumbnail_url = (
-                    thumb_variants.get("webp") or 
-                    thumb_variants.get("avif") or 
-                    thumb_variants.get("jpg")
-                )
+            # Use first image for thumbnail
+            first_image = costume.images[0]
+            
+            # For thumbnail: return full URL
+            thumbnail = first_image  # This should be the full URL
+            
+            # For all images: return base data for frontend processing
+            for img_url in costume.images:
+                # Extract filename from URL
+                filename = img_url.split("/")[-1] if "/" in img_url else img_url
+                
+                # Remove extension to get base name
+                base_name = filename.rsplit('.', 1)[0]
+                
+                # Return base image data for frontend to construct variants
+                images_data.append({
+                    "base_name": base_name,
+                    "original": img_url,  # Full original URL
+                    "formats": ["jpg", "webp", "avif"],  # Available formats
+                    "dimensions": [
+                        {"suffix": "_thumb", "width": 200, "height": 200},
+                        {"suffix": "_medium", "width": 800, "height": 800},
+                        {"suffix": "_large", "width": 1920, "height": 1920}
+                    ]
+                })
         
         result.append({
             "id": costume.id,
@@ -66,7 +81,8 @@ async def get_costumes(
             "gender": costume.gender.value,
             "age_category": costume.age_category.value,
             "tags": costume.tags,
-            "thumbnail": thumbnail_url,
+            "thumbnail": thumbnail,  # Full URL to thumbnail
+            "images": images_data,   # Base data for all images
             "is_active": costume.is_active
         })
     

@@ -129,7 +129,18 @@ class CostumePublic(BaseModel):
     class Config:
         from_attributes = True
 
-# For listing
+
+class ImageDimension(BaseModel):
+    suffix: str
+    width: int
+    height: int
+
+class ImageData(BaseModel):
+    base_name: str
+    original: str
+    formats: List[str]
+    dimensions: List[ImageDimension]
+
 class CostumeList(BaseModel):
     id: int
     name: str
@@ -137,9 +148,10 @@ class CostumeList(BaseModel):
     gender: GenderEnum
     age_category: AgeCategoryEnum
     tags: List[str]
-    thumbnail: Optional[str]  # URL to thumbnail
+    thumbnail: Optional[str]  # Full URL to thumbnail
+    images: List[ImageData]   # Base data for all images
     is_active: bool
-    
+
     class Config:
         from_attributes = True
 
