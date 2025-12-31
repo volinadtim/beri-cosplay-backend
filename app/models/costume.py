@@ -1,6 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, Text, Enum, DateTime
 from sqlalchemy.dialects.postgresql import ARRAY, JSON
-from datetime import datetime, UTC
+from datetime import datetime, timezone
 import enum
 from app.db.database import Base
 
@@ -41,8 +41,8 @@ class Costume(Base):
     related_costumes = Column(ARRAY(Integer), nullable=False, default=[])
     
     # Timestamps - use timezone-naive datetime
-    created_at = Column(DateTime(timezone=False), default=datetime.now(UTC), nullable=False)
-    updated_at = Column(DateTime(timezone=False), default=datetime.now(UTC), onupdate=datetime.now(UTC), nullable=False)
+    created_at = Column(DateTime(timezone=False), default=datetime.now(timezone.utc), nullable=False)
+    updated_at = Column(DateTime(timezone=False), default=datetime.now(timezone.utc), onupdate=datetime.now(timezone.utc), nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
     
     def __repr__(self):
