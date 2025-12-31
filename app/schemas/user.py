@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, Field, validator
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from typing import Optional
 from datetime import datetime
 from app.models.user import UserRole
@@ -14,7 +14,7 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=8)
     role: Optional[UserRole] = UserRole.USER
     
-    @validator('password')
+    @field_validator('password')
     def validate_password(cls, v):
         if len(v) < 8:
             raise ValueError('Password must be at least 8 characters')
@@ -37,7 +37,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = Field(None, min_length=8)
     is_active: Optional[bool] = None
     
-    @validator('password')
+    @field_validator('password')
     def validate_password(cls, v):
         if v is None:
             return v
@@ -81,7 +81,7 @@ class LoginRequest(BaseModel):
     username: Optional[str] = None
     password: str
     
-    @validator('email', 'username')
+    @field_validator('email', 'username')
     def validate_identifier(cls, v, values, field):
         if field.name == 'email' and v is None and values.get('username') is None:
             raise ValueError('Either email or username must be provided')
